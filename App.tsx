@@ -15,8 +15,29 @@ import { NotFoundPage } from './views/NotFound';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('home');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [user, setUser] = useState<User | null>(null);
+  
+  // Persistence: Cart
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('aice-cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+      console.error("Failed to load cart from storage", error);
+      return [];
+    }
+  });
+
+  // Persistence: User
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('aice-user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (error) {
+      console.error("Failed to load user from storage", error);
+      return null;
+    }
+  });
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
   // Auth Redirect Logic
@@ -26,14 +47,39 @@ const App: React.FC = () => {
   const [catalogInitialCategory, setCatalogInitialCategory] = useState<string>('All');
   const [catalogInitialBrand, setCatalogInitialBrand] = useState<string>('All');
 
-  // Stash (Wishlist) Logic
-  const [stash, setStash] = useState<string[]>([]);
+  // Persistence: Stash (Wishlist)
+  const [stash, setStash] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('aice-stash');
+      return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+      console.error("Failed to load stash from storage", error);
+      return [];
+    }
+  });
 
   // Toast State
   const [toast, setToast] = useState<{ visible: boolean; message: string | null }>({
     visible: false,
     message: null,
   });
+  
+  // Persistence Effects
+  useEffect(() => {
+    localStorage.setItem('aice-cart', JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem('aice-stash', JSON.stringify(stash));
+  }, [stash]);
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('aice-user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('aice-user');
+    }
+  }, [user]);
   
   const triggerToast = (message: string) => {
     setToast({ visible: true, message });
@@ -116,6 +162,7 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setUser(null);
+    localStorage.removeItem('aice-user');
     setCurrentView('home'); // Don't trap on login page
     triggerToast("LOGGED OUT");
   };
